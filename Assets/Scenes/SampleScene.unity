@@ -666,6 +666,8 @@ MonoBehaviour:
   wave1: {fileID: 1456115346}
   wave2: {fileID: 1632343322}
   sumWave: {fileID: 965448265}
+  circleRenderer: {fileID: 862134068}
+  circleXOffset: -3
   amplitudeText: {fileID: 1222160053}
   thetaText: {fileID: 495547136}
   amplitudeSlider: {fileID: 390980740}
@@ -677,7 +679,8 @@ MonoBehaviour:
   waveLength: 10
   frequency: 1
   speed: 0.3
-  verticalScale: 2
+  verticalScale: 1
+  circleResolution: 100
 --- !u!1 &247888367
 GameObject:
   m_ObjectHideFlags: 0

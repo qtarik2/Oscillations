@@ -10,8 +10,17 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private LineRenderer wave2;    // Red
     [SerializeField] private LineRenderer sumWave;  // Green
 
+
+    [Header("Connector")]
+    [SerializeField] private LineRenderer connector1; // from point1 to wave1
+    [SerializeField] private LineRenderer connector2; // from point2 to wave2
+
     [Header("Circle")]
     [SerializeField] private LineRenderer circleRenderer;
+    [SerializeField] private Transform point1; // Blue point y1
+    [SerializeField] private Transform point2; // Red point y2
+    [SerializeField] private LineRenderer radiusLine1;
+    [SerializeField] private LineRenderer radiusLine2;
     [SerializeField] private float circleXOffset = -3f;
 
     [Header("UI Controls")]
@@ -59,7 +68,11 @@ public class WaveManager : MonoBehaviour
         amplitudeSlider.onValueChanged.AddListener((val) => amplitudeText.text = $"Amplitude = {val:F2}");
         thetaSlider.onValueChanged.AddListener((val) => thetaText.text = $"θ in degrees= {val:F0} = {val * Mathf.Deg2Rad:F2} radians");
 
-        
+        // Initialize circle and radius lines
+        circleRenderer.positionCount = circleResolution + 1;
+
+        radiusLine1.positionCount = 2;
+        radiusLine2.positionCount = 2;
     }
 
     void Update()
@@ -110,6 +123,52 @@ public class WaveManager : MonoBehaviour
         sumWave.enabled = showSum;
 
         DrawCircle(A);
+        UpdateCirclePoints(A, theta, t);
+    }
+
+    private void UpdateCirclePoints(float amplitude, float theta, float time)
+    {
+        if (point1 == null || point2 == null) return;
+
+        float angle1 = Omega * time + theta;
+        float angle2 = Omega * time;
+
+        Vector3 center = new(circleXOffset, 0, 0);
+        Vector3 p1 = new(circleXOffset + amplitude * Mathf.Cos(angle1), amplitude * Mathf.Sin(angle1));
+        Vector3 p2 = new(circleXOffset + amplitude * Mathf.Cos(angle2), amplitude * Mathf.Sin(angle2));
+
+        point1.localPosition = p1;
+        point2.localPosition = p2;
+
+        if (radiusLine1 != null)
+        {
+            radiusLine1.SetPosition(0, center);
+            radiusLine1.SetPosition(1, p1);
+        }
+        if (radiusLine2 != null)
+        {
+            radiusLine2.SetPosition(0, center);
+            radiusLine2.SetPosition(1, p2);
+        }
+
+        if (connector1 != null)
+        {
+            Vector3 start1 = point1.localPosition;
+            // find the Y position of the wave1 at x = 0
+            Vector3 wave1Pos = new(0f, wave1.GetPosition(0).y, 0f);
+            connector1.positionCount = 2;
+            connector1.SetPosition(0, start1);
+            connector1.SetPosition(1, wave1Pos);
+        }
+
+        if (connector2 != null)
+        {
+            Vector3 start2 = point2.localPosition;
+            Vector3 wave2Pos = new(0f, wave2.GetPosition(0).y, 0f);
+            connector2.positionCount = 2;
+            connector2.SetPosition(0, start2);
+            connector2.SetPosition(1, wave2Pos);
+        }
     }
 
     private void DrawCircle(float radius)
