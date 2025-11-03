@@ -666,7 +666,13 @@ MonoBehaviour:
   wave1: {fileID: 1456115346}
   wave2: {fileID: 1632343322}
   sumWave: {fileID: 965448265}
+  connector1: {fileID: 162365799}
+  connector2: {fileID: 695228070}
   circleRenderer: {fileID: 862134068}
+  point1: {fileID: 1519400727}
+  point2: {fileID: 1351446107}
+  radiusLine1: {fileID: 1918835098}
+  radiusLine2: {fileID: 980575969}
   circleXOffset: -3
   amplitudeText: {fileID: 1222160053}
   thetaText: {fileID: 495547136}
