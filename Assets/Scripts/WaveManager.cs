@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,7 +36,6 @@ public class WaveManager : MonoBehaviour
         amplitudeSlider.maxValue = 1f;
         amplitudeSlider.value = 1f;
 
-
         thetaSlider.minValue = 0f;
         thetaSlider.maxValue = 360f;
         thetaSlider.value = 90f;
@@ -51,7 +51,6 @@ public class WaveManager : MonoBehaviour
         amplitudeText.text = $"Amplitude = {amplitudeSlider.value:F2}";
         thetaText.text = $"θ in degrees= {thetaSlider.value:F0} = {thetaSlider.value * Mathf.Deg2Rad:F2} radians";
 
-
         amplitudeSlider.onValueChanged.AddListener((val) => amplitudeText.text = $"Amplitude = {val:F2}");
         thetaSlider.onValueChanged.AddListener((val) => thetaText.text = $"θ in degrees= {val:F0} = {val * Mathf.Deg2Rad:F2} radians");
     }
@@ -62,21 +61,15 @@ public class WaveManager : MonoBehaviour
         float theta = thetaSlider.value * Mathf.Deg2Rad;
         float t = Time.time * speed;
 
+        float x, y1, y2;
         bool showMoving = movingToggle.isOn;
         bool showStationary = stationaryToggle.isOn;
         bool showSum = sumToggle.isOn;
 
-        // Clear previous frame (avoids residual lines)
-        wave1.positionCount = resolution;
-        wave2.positionCount = resolution;
-        sumWave.positionCount = resolution;
-
         for (int i = 0; i < resolution; i++)
         {
-            float x = i / (float)(resolution - 1) * waveLength;
+            x = i / (float)(resolution - 1) * waveLength;
             float phase = (WaveNumber * x) - (Omega * t);
-
-            float y1 = 0f, y2 = 0f;
 
             if (showMoving)
             {
@@ -88,6 +81,10 @@ public class WaveManager : MonoBehaviour
                 y1 = A * Mathf.Cos(WaveNumber * x);
                 y2 = A * Mathf.Cos(WaveNumber * x + theta);
             }
+            else
+            {
+                y1 = y2 = 0;
+            }
 
             float ySum = y1 + y2;
 
@@ -96,8 +93,8 @@ public class WaveManager : MonoBehaviour
 
             if (showSum)
                 sumWave.SetPosition(i, new Vector3(x, ySum * verticalScale, 0));
-            else
-                sumWave.SetPosition(i, new Vector3(x, 0, 0));
+            // else
+            //     sumWave.SetPosition(i, new Vector3(x, 0, 0));
         }
 
         // Enable only the visible waves
