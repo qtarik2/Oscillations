@@ -10,6 +10,10 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private LineRenderer wave2;    // Red
     [SerializeField] private LineRenderer sumWave;  // Green
 
+    [Header("Circle")]
+    [SerializeField] private LineRenderer circleRenderer;
+    [SerializeField] private float circleXOffset = -3f;
+
     [Header("UI Controls")]
     [SerializeField] private TextMeshProUGUI amplitudeText;
     [SerializeField] private TextMeshProUGUI thetaText;
@@ -25,6 +29,7 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private float frequency = 1f;   // fixed frequency
     [SerializeField] private float speed = 1f;       // animation speed
     [SerializeField] private float verticalScale = 1f;
+    [SerializeField] private int circleResolution = 100;
 
     private float Omega => 2f * Mathf.PI * frequency;
     private float WaveNumber => 2f * Mathf.PI / waveLength;
@@ -53,6 +58,8 @@ public class WaveManager : MonoBehaviour
 
         amplitudeSlider.onValueChanged.AddListener((val) => amplitudeText.text = $"Amplitude = {val:F2}");
         thetaSlider.onValueChanged.AddListener((val) => thetaText.text = $"θ in degrees= {val:F0} = {val * Mathf.Deg2Rad:F2} radians");
+
+        
     }
 
     void Update()
@@ -101,5 +108,21 @@ public class WaveManager : MonoBehaviour
         wave1.enabled = showMoving || showStationary;
         wave2.enabled = showMoving || showStationary;
         sumWave.enabled = showSum;
+
+        DrawCircle(A);
+    }
+
+    private void DrawCircle(float radius)
+    {
+        if (circleRenderer == null) return;
+
+        circleRenderer.positionCount = circleResolution + 1;
+
+        for (int i = 0; i <= circleResolution; i++)
+        {
+            float angle = i / (float)circleResolution * 2f * Mathf.PI;
+            Vector3 pos = new(circleXOffset + (radius * Mathf.Cos(angle)), radius * Mathf.Sin(angle), 0);
+            circleRenderer.SetPosition(i, pos);
+        }
     }
 }

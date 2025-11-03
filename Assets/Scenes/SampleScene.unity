@@ -677,7 +677,7 @@ MonoBehaviour:
   waveLength: 10
   frequency: 1
   speed: 0.3
-  verticalScale: 1
+  verticalScale: 2
 --- !u!1 &247888367
 GameObject:
   m_ObjectHideFlags: 0
