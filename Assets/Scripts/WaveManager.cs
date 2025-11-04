@@ -10,7 +10,6 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private LineRenderer wave2;    // Red
     [SerializeField] private LineRenderer sumWave;  // Green
 
-
     [Header("Connector")]
     [SerializeField] private LineRenderer connector1; // from point1 to wave1
     [SerializeField] private LineRenderer connector2; // from point2 to wave2
@@ -33,155 +32,196 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private Toggle sumToggle;
 
     [Header("Wave Settings")]
-    [SerializeField] private int resolution = 400;   // number of points in each line
-    [SerializeField] private float waveLength = 10f; // horizontal length of the wave
-    [SerializeField] private float frequency = 1f;   // fixed frequency
-    [SerializeField] private float speed = 1f;       // animation speed
+    [SerializeField] private int resolution = 400;
+    [SerializeField] private float waveLength = 10f;
+    [SerializeField] private float frequency = 1f;
+    [SerializeField] private float speed = 1f;
+    [SerializeField] private float circleSpeed = 1f;
     [SerializeField] private float verticalScale = 1f;
-    [SerializeField] private int circleResolution = 100;
 
     private float Omega => 2f * Mathf.PI * frequency;
     private float WaveNumber => 2f * Mathf.PI / waveLength;
 
-    void Start()
+    private float currentAmplitude;
+    private float currentPhase;
+
+    private void Start()
     {
-        // Setup default values
+        InitializeLines();
+        InitializeUI();
+    }
+
+    private void InitializeLines()
+    {
+        SetupLineRenderer(wave1, false, 0.05f, resolution);
+        SetupLineRenderer(wave2, false, 0.05f, resolution);
+        SetupLineRenderer(sumWave, false, 0.05f, resolution);
+
+        SetupLineRenderer(circleRenderer, true, 0.03f, resolution);
+
+        SetupLineRenderer(radiusLine1, false, 0.03f, 2);
+        SetupLineRenderer(radiusLine2, false, 0.03f, 2);
+        SetupLineRenderer(connector1, false, 0.02f, 2);
+        SetupLineRenderer(connector2, false, 0.02f, 2);
+    }
+
+    private void Update()
+    {
+        DrawCircle();
+        DrawWaves();
+        UpdateConnectors();
+    }
+
+    private void InitializeUI()
+    {
         amplitudeSlider.minValue = 0f;
         amplitudeSlider.maxValue = 1f;
         amplitudeSlider.value = 1f;
+        currentAmplitude = amplitudeSlider.value;
 
         thetaSlider.minValue = 0f;
         thetaSlider.maxValue = 360f;
         thetaSlider.value = 90f;
+        currentPhase = thetaSlider.value * Mathf.Deg2Rad;
 
         movingToggle.isOn = true;
         stationaryToggle.isOn = false;
         sumToggle.isOn = false;
 
-        wave1.positionCount = resolution;
-        wave2.positionCount = resolution;
-        sumWave.positionCount = resolution;
-
         amplitudeText.text = $"Amplitude = {amplitudeSlider.value:F2}";
-        thetaText.text = $"θ in degrees= {thetaSlider.value:F0} = {thetaSlider.value * Mathf.Deg2Rad:F2} radians";
+        thetaText.text = $"θ = {thetaSlider.value:F0}° = {thetaSlider.value * Mathf.Deg2Rad:F2} rad";
 
-        amplitudeSlider.onValueChanged.AddListener((val) => amplitudeText.text = $"Amplitude = {val:F2}");
-        thetaSlider.onValueChanged.AddListener((val) => thetaText.text = $"θ in degrees= {val:F0} = {val * Mathf.Deg2Rad:F2} radians");
-
-        // Initialize circle and radius lines
-        circleRenderer.positionCount = circleResolution + 1;
-
-        radiusLine1.positionCount = 2;
-        radiusLine2.positionCount = 2;
+        amplitudeSlider.onValueChanged.AddListener(OnAmplitudeChange);
+        thetaSlider.onValueChanged.AddListener(OnThetaChange);
     }
 
-    void Update()
+    private void OnThetaChange(float value)
     {
-        float A = amplitudeSlider.value;
-        float theta = thetaSlider.value * Mathf.Deg2Rad;
-        float t = Time.time * speed;
+        currentPhase = value * Mathf.Deg2Rad;
+        thetaText.text = $"θ = {value:F0}° = {currentPhase:F2} rad";
+    }
 
-        float x, y1, y2;
+    private void OnAmplitudeChange(float value)
+    {
+        currentAmplitude = value;
+        amplitudeText.text = $"Amplitude = {value:F2}";
+    }
+
+    private void DrawWaves()
+    {
+        float time = Time.timeSinceLevelLoad * speed;
         bool showMoving = movingToggle.isOn;
         bool showStationary = stationaryToggle.isOn;
         bool showSum = sumToggle.isOn;
 
+        float x, y1, y2;
         for (int i = 0; i < resolution; i++)
         {
             x = i / (float)(resolution - 1) * waveLength;
-            float phase = (WaveNumber * x) - (Omega * t);
+            float phase = (WaveNumber * x) - (Omega * time);
 
             if (showMoving)
             {
-                y1 = A * Mathf.Cos(phase);
-                y2 = A * Mathf.Cos(phase + theta);
+                y1 = currentAmplitude * Mathf.Cos(phase);
+                y2 = currentAmplitude * Mathf.Cos(phase + currentPhase);
             }
             else if (showStationary)
             {
-                y1 = A * Mathf.Cos(WaveNumber * x);
-                y2 = A * Mathf.Cos(WaveNumber * x + theta);
+                // Standing wave = sum of two opposite moving waves
+                y1 = currentAmplitude * Mathf.Cos(WaveNumber * x);
+                y2 = currentAmplitude * Mathf.Cos(WaveNumber * x + currentPhase);
             }
             else
             {
                 y1 = y2 = 0;
             }
 
-            float ySum = y1 + y2;
+            // // Invert Y to match oPhysics direction
+            // y1 *= -1f;
+            // y2 *= -1f;
 
             wave1.SetPosition(i, new Vector3(x, y1 * verticalScale, 0));
             wave2.SetPosition(i, new Vector3(x, y2 * verticalScale, 0));
 
             if (showSum)
+            {
+                float ySum = y1 + y2;
                 sumWave.SetPosition(i, new Vector3(x, ySum * verticalScale, 0));
-            // else
-            //     sumWave.SetPosition(i, new Vector3(x, 0, 0));
+            }
+
+            wave1.enabled = showMoving || showStationary;
+            wave2.enabled = showMoving || showStationary;
+            sumWave.enabled = showSum;
         }
-
-        // Enable only the visible waves
-        wave1.enabled = showMoving || showStationary;
-        wave2.enabled = showMoving || showStationary;
-        sumWave.enabled = showSum;
-
-        DrawCircle(A);
-        UpdateCirclePoints(A, theta, t);
     }
 
-    private void UpdateCirclePoints(float amplitude, float theta, float time)
+    private void DrawCircle()
     {
-        if (point1 == null || point2 == null) return;
-
-        float angle1 = Omega * time + theta;
-        float angle2 = Omega * time;
+        if (circleRenderer == null) return;
 
         Vector3 center = new(circleXOffset, 0, 0);
-        Vector3 p1 = new(circleXOffset + amplitude * Mathf.Cos(angle1), amplitude * Mathf.Sin(angle1));
-        Vector3 p2 = new(circleXOffset + amplitude * Mathf.Cos(angle2), amplitude * Mathf.Sin(angle2));
+
+        for (int i = 0; i < resolution; i++)
+        {
+            float t = (float)i / resolution * 2 * Mathf.PI;
+            float x = center.x + currentAmplitude * Mathf.Cos(t);
+            float y = center.y + currentAmplitude * Mathf.Sin(t); // Anticlockwise rotation
+            circleRenderer.SetPosition(i, new Vector3(x, y, 0));
+        }
+
+        float time = Time.timeSinceLevelLoad * circleSpeed;
+        float angle1 = Omega * time;
+        float angle2 = Omega * time + currentPhase;
+
+        // Match circle rotation direction
+        Vector3 p1 = new(center.x + currentAmplitude * Mathf.Cos(angle1), center.y + currentAmplitude * Mathf.Sin(angle1), center.z);
+        Vector3 p2 = new(center.x + currentAmplitude * Mathf.Cos(angle2), center.y + currentAmplitude * Mathf.Sin(angle2), center.z);
 
         point1.localPosition = p1;
         point2.localPosition = p2;
 
-        if (radiusLine1 != null)
-        {
-            radiusLine1.SetPosition(0, center);
-            radiusLine1.SetPosition(1, p1);
-        }
-        if (radiusLine2 != null)
-        {
-            radiusLine2.SetPosition(0, center);
-            radiusLine2.SetPosition(1, p2);
-        }
+        radiusLine1.SetPosition(0, center);
+        radiusLine1.SetPosition(1, p1);
 
-        if (connector1 != null)
-        {
-            Vector3 start1 = point1.localPosition;
-            // find the Y position of the wave1 at x = 0
-            Vector3 wave1Pos = new(0f, wave1.GetPosition(0).y, 0f);
-            connector1.positionCount = 2;
-            connector1.SetPosition(0, start1);
-            connector1.SetPosition(1, wave1Pos);
-        }
+        radiusLine2.SetPosition(0, center);
+        radiusLine2.SetPosition(1, p2);
+    }
 
-        if (connector2 != null)
+    private void UpdateConnectors()
+    {
+        if (wave1.positionCount == 0 || wave2.positionCount == 0) return;
+
+        connector1.SetPosition(0, point1.position);
+        connector2.SetPosition(0, point2.position);
+
+        if (stationaryToggle.isOn)
         {
-            Vector3 start2 = point2.localPosition;
-            Vector3 wave2Pos = new(0f, wave2.GetPosition(0).y, 0f);
-            connector2.positionCount = 2;
-            connector2.SetPosition(0, start2);
-            connector2.SetPosition(1, wave2Pos);
+            // Let endpoints slide along the waves to visualize standing wave pattern
+            float t = (Mathf.Sin(Time.time * 0.5f) + 1f) * 0.5f; // oscillate 0–1
+            int idx = Mathf.FloorToInt(t * (resolution - 1));
+
+            connector1.SetPosition(1, wave1.GetPosition(idx));
+            connector2.SetPosition(1, wave2.GetPosition(idx));
+        }
+        else
+        {
+            connector1.SetPosition(1, wave1.GetPosition(0));
+            connector2.SetPosition(1, wave2.GetPosition(0));
         }
     }
 
-    private void DrawCircle(float radius)
+    private void SetupLineRenderer(LineRenderer lr, bool loop, float width, int posCount = 0, bool worldSpace = true)
     {
-        if (circleRenderer == null) return;
-
-        circleRenderer.positionCount = circleResolution + 1;
-
-        for (int i = 0; i <= circleResolution; i++)
-        {
-            float angle = i / (float)circleResolution * 2f * Mathf.PI;
-            Vector3 pos = new(circleXOffset + (radius * Mathf.Cos(angle)), radius * Mathf.Sin(angle), 0);
-            circleRenderer.SetPosition(i, pos);
-        }
+        if (lr == null) return;
+        lr.loop = loop;
+        lr.useWorldSpace = worldSpace;
+        lr.alignment = LineAlignment.View;
+        lr.numCornerVertices = 0;
+        lr.numCapVertices = 0;
+        lr.startWidth = width;
+        lr.endWidth = width;
+        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        lr.receiveShadows = false;
+        if (posCount > 0) lr.positionCount = posCount;
     }
 }
